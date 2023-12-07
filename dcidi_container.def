@@ -36,6 +36,9 @@ From: ubuntu:22.04
 	Rscript -e 'install.packages("https://cran.r-project.org/src/contrib/sparsebnUtils_0.0.8.tar.gz", repos=NULL, type="source")'
 	Rscript -e 'BiocManager::install(c("ccdrAlgorithm", "discretecdAlgorithm"))'
 
+%startscript
+	PATH=$PATH:$HOME/.local/bin
+
 	
 
 %labels
