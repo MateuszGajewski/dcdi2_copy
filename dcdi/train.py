@@ -17,20 +17,30 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER I
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
-import cdt
+import copy
 import os
 import time
-import copy
+
+import cdt
 import numpy as np
 import torch
 from cdt.utils.R import RPackages, launch_R_script
 
 from .dag_optim import compute_dag_constraint, is_acyclic
+from .plot import (
+    plot_adjacency,
+    plot_interv_w,
+    plot_learned_density,
+    plot_learning_curves,
+    plot_learning_curves_retrain,
+    plot_weighted_adjacency,
+)
 from .prox import monkey_patch_RMSprop
-from .utils.metrics import edge_errors, shd as shd_metric
+from .utils.metrics import edge_errors
+from .utils.metrics import shd as shd_metric
 from .utils.penalty import compute_penalty
 from .utils.save import dump, load
-from .plot import plot_learned_density, plot_weighted_adjacency, plot_adjacency, plot_learning_curves, plot_interv_w, plot_learning_curves_retrain
+
 np.set_printoptions(linewidth=200)
 EPSILON = 1e-8
 
@@ -121,7 +131,7 @@ def train(model, gt_adjacency, gt_interv, train_data, test_data, opt, metrics_ca
         constraint_normalization = compute_dag_constraint(full_adjacency).item()
 
     # Learning loop:
-    for iter in range(opt.num_train_iter):
+    for iter in range(100):#opt.num_train_iter):
         # compute loss
         model.train()
         x, mask, regime = train_data.sample(opt.train_batch_size)
@@ -201,7 +211,7 @@ def train(model, gt_adjacency, gt_interv, train_data, test_data, opt, metrics_ca
         # log metrics
         if iter % 100 == 0:
             print("Iteration:", iter)
-            if opt.num_vars <= 5:
+            if opt.num_vars <= 102:
                 print("    w_adj({}):\n".format(w_adj_mode), w_adj.detach().cpu().numpy())
                 print("    current_adjacency:\n", model.adjacency.detach().cpu().numpy())
                 print("    gt_adjacency:\n", gt_adjacency)

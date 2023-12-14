@@ -26,7 +26,6 @@ import numpy as np
 
 
 from dcdi.models.learnables import LearnableModel_NonLinGaussANM
-from dcdi.models.learnables import LearnableModel_NonLinGaussANM
 from dcdi.models.flows import DeepSigmoidalFlowModel
 from dcdi.train import train, retrain, compute_loss
 from dcdi.data import DataManagerFile
