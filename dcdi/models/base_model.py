@@ -26,9 +26,18 @@ from ..dag_optim import GumbelAdjacency, GumbelIntervWeight
 
 
 class BaseModel(nn.Module):
-    def __init__(self, num_vars, num_layers, hid_dim, num_params, nonlin="leaky-relu",
-                 intervention=False, intervention_type="perfect",
-                 intervention_knowledge="known", num_regimes=1):
+    def __init__(
+        self,
+        num_vars,
+        num_layers,
+        hid_dim,
+        num_params,
+        nonlin="leaky-relu",
+        intervention=False,
+        intervention_type="perfect",
+        intervention_knowledge="known",
+        num_regimes=1,
+    ):
         """
         :param int num_vars: number of variables in the system
         :param int num_layers: number of hidden layers
@@ -57,10 +66,24 @@ class BaseModel(nn.Module):
         # Those parameter might be learnable, but they do not depend on parents.
         self.extra_params = []
 
-        if not(not self.intervention or \
-        (self.intervention and self.intervention_type == "perfect" and self.intervention_knowledge == "known") or \
-        (self.intervention and self.intervention_type == "perfect" and self.intervention_knowledge == "unknown") or \
-        (self.intervention and self.intervention_type == "imperfect" and self.intervention_knowledge == "known")):
+        if not (
+            not self.intervention
+            or (
+                self.intervention
+                and self.intervention_type == "perfect"
+                and self.intervention_knowledge == "known"
+            )
+            or (
+                self.intervention
+                and self.intervention_type == "perfect"
+                and self.intervention_knowledge == "unknown"
+            )
+            or (
+                self.intervention
+                and self.intervention_type == "imperfect"
+                and self.intervention_knowledge == "known"
+            )
+        ):
             raise ValueError("Not implemented")
 
         if not self.intervention:
@@ -69,13 +92,15 @@ class BaseModel(nn.Module):
             self.intervention_knowledge = "known"
 
         # initialize current adjacency matrix
-        self.adjacency = torch.ones((self.num_vars, self.num_vars)) - torch.eye(self.num_vars)
+        self.adjacency = torch.ones((self.num_vars, self.num_vars)) - torch.eye(
+            self.num_vars
+        )
         self.gumbel_adjacency = GumbelAdjacency(self.num_vars)
 
-        if self.intervention_knowledge == 'unknown' and self.intervention:
+        if self.intervention_knowledge == "unknown" and self.intervention:
             self.gumbel_interv_w = GumbelIntervWeight(self.num_vars, self.num_regimes)
 
-        self.zero_weights_ratio = 0.
+        self.zero_weights_ratio = 0.0
         self.numel_weights = 0
 
         # Instantiate the parameters of each layer in the model of each variable
@@ -92,25 +117,37 @@ class BaseModel(nn.Module):
                 out_dim = self.num_params
 
             # if interv are imperfect or unknown, generate 'num_regimes' MLPs per conditional
-            if self.intervention and (self.intervention_type == 'imperfect' or
-                                      self.intervention_knowledge == 'unknown'):
-                self.weights.append(nn.Parameter(torch.zeros(self.num_vars,
-                                                             out_dim, in_dim,
-                                                             self.num_regimes)))
-                self.biases.append(nn.Parameter(torch.zeros(self.num_vars, out_dim,
-                                                            self.num_regimes)))
-                self.numel_weights += self.num_vars * out_dim * in_dim * self.num_regimes
+            if self.intervention and (
+                self.intervention_type == "imperfect"
+                or self.intervention_knowledge == "unknown"
+            ):
+                self.weights.append(
+                    nn.Parameter(
+                        torch.zeros(self.num_vars, out_dim, in_dim, self.num_regimes)
+                    )
+                )
+                self.biases.append(
+                    nn.Parameter(torch.zeros(self.num_vars, out_dim, self.num_regimes))
+                )
+                self.numel_weights += (
+                    self.num_vars * out_dim * in_dim * self.num_regimes
+                )
             # for perfect interv, generate only one MLP per conditional
-            elif not self.intervention or self.intervention_type == 'perfect':
-                self.weights.append(nn.Parameter(torch.zeros(self.num_vars, out_dim, in_dim)))
+            elif not self.intervention or self.intervention_type == "perfect":
+                self.weights.append(
+                    nn.Parameter(torch.zeros(self.num_vars, out_dim, in_dim))
+                )
                 self.biases.append(nn.Parameter(torch.zeros(self.num_vars, out_dim)))
                 self.numel_weights += self.num_vars * out_dim * in_dim
             else:
-                if self.intervention_type not in ['perfect', 'imperfect']:
-                    raise ValueError(f'{intervention_type} is not a valid for intervention type')
-                if self.intervention_knowledge not in ['known', 'unknown']:
-                    raise ValueError(f'{intervention_knowledge} is not a valid value for intervention knowledge')
-
+                if self.intervention_type not in ["perfect", "imperfect"]:
+                    raise ValueError(
+                        f"{intervention_type} is not a valid for intervention type"
+                    )
+                if self.intervention_knowledge not in ["known", "unknown"]:
+                    raise ValueError(
+                        f"{intervention_knowledge} is not a valid value for intervention knowledge"
+                    )
 
     def get_interv_w(self, bs, regime):
         return self.gumbel_interv_w(bs, regime)
@@ -135,13 +172,22 @@ class BaseModel(nn.Module):
                 adj = self.adjacency.unsqueeze(0)
 
                 if not self.intervention:
-                    x = torch.einsum("tij,bjt,ljt,bj->bti", weights[layer], M, adj, x) + biases[layer]
-                elif self.intervention_type == "perfect" and self.intervention_knowledge == "known":
+                    x = (
+                        torch.einsum("tij,bjt,ljt,bj->bti", weights[layer], M, adj, x)
+                        + biases[layer]
+                    )
+                elif (
+                    self.intervention_type == "perfect"
+                    and self.intervention_knowledge == "known"
+                ):
                     # the mask is not applied here, it is applied in the loss term
-                    x = torch.einsum("tij,bjt,ljt,bj->bti", weights[layer], M, adj, x) + biases[layer]
+                    x = (
+                        torch.einsum("tij,bjt,ljt,bj->bti", weights[layer], M, adj, x)
+                        + biases[layer]
+                    )
                 else:
-                    assert mask is not None, 'Mask is not set!'
-                    assert regime is not None, 'Regime is not set!'
+                    assert mask is not None, "Mask is not set!"
+                    assert regime is not None, "Regime is not set!"
 
                     regime = torch.from_numpy(regime)
                     R = mask
@@ -158,25 +204,32 @@ class BaseModel(nn.Module):
                     # MLP parameter corresponding to the regime
                     R = (1 - R).type(torch.int64)
                     R = R * regime.unsqueeze(1)
-                    R = torch.zeros(R.size(0), self.num_vars, self.num_regimes).scatter_(2, R.unsqueeze(2), 1)
+                    R = torch.zeros(
+                        R.size(0), self.num_vars, self.num_regimes
+                    ).scatter_(2, R.unsqueeze(2), 1)
 
                     # apply the first MLP layer with the mask M and the
                     # parameters 'selected' by R
-                    w = torch.einsum('tijk, btk -> btij', weights[layer], R)
+                    w = torch.einsum("tijk, btk -> btij", weights[layer], R)
                     x = torch.einsum("btij, bjt, ljt, bj -> bti", w, M, adj, x)
                     x += torch.einsum("btk,tik->bti", R, biases[layer])
 
             # 2nd layer and more
             else:
-                if self.intervention and (self.intervention_type == "imperfect" or self.intervention_knowledge == "unknown"):
-                    w = torch.einsum('tijk, btk -> btij', weights[layer], R)
+                if self.intervention and (
+                    self.intervention_type == "imperfect"
+                    or self.intervention_knowledge == "unknown"
+                ):
+                    w = torch.einsum("tijk, btk -> btij", weights[layer], R)
                     x = torch.einsum("btij, btj -> bti", w, x)
                     x += torch.einsum("btk,tik->bti", R, biases[layer])
                 else:
                     x = torch.einsum("tij,btj->bti", weights[layer], x) + biases[layer]
 
             # count number of zeros
-            num_zero_weights += weights[layer].numel() - weights[layer].nonzero().size(0)
+            num_zero_weights += weights[layer].numel() - weights[layer].nonzero().size(
+                0
+            )
 
             # apply non-linearity
             if layer != self.num_layers:
@@ -188,6 +241,9 @@ class BaseModel(nn.Module):
 
     def get_w_adj(self):
         """Get weighted adjacency matrix"""
+        w = self.gumbel_adjacency.get_proba() * self.adjacency
+        w_ = (1 - w).T * self.adjacency
+        # return w * w_
         return self.gumbel_adjacency.get_proba() * self.adjacency
 
     def reset_params(self):
@@ -195,7 +251,9 @@ class BaseModel(nn.Module):
             for node in range(self.num_vars):
                 for i, w in enumerate(self.weights):
                     w = w[node]
-                    nn.init.xavier_uniform_(w, gain=nn.init.calculate_gain('leaky_relu'))
+                    nn.init.xavier_uniform_(
+                        w, gain=nn.init.calculate_gain("leaky_relu")
+                    )
                 for i, b in enumerate(self.biases):
                     b = b[node]
                     b.zero_()
@@ -208,18 +266,18 @@ class BaseModel(nn.Module):
         """
         params = []
 
-        if 'w' in mode:
+        if "w" in mode:
             weights = []
             for w in self.weights:
                 weights.append(w)
             params.append(weights)
-        if 'b'in mode:
+        if "b" in mode:
             biases = []
             for b in self.biases:
                 biases.append(b)
             params.append(biases)
 
-        if 'x' in mode:
+        if "x" in mode:
             extra_params = []
             for ep in self.extra_params:
                 if ep.requires_grad:
@@ -237,17 +295,17 @@ class BaseModel(nn.Module):
         """
         with torch.no_grad():
             k = 0
-            if 'w' in mode:
+            if "w" in mode:
                 for i, w in enumerate(self.weights):
                     w.copy_(params[k][i])
                 k += 1
 
-            if 'b' in mode:
+            if "b" in mode:
                 for i, b in enumerate(self.biases):
                     b.copy_(params[k][i])
                 k += 1
 
-            if 'x' in mode and len(self.extra_params) > 0:
+            if "x" in mode and len(self.extra_params) > 0:
                 for i, ep in enumerate(self.extra_params):
                     if ep.requires_grad:
                         ep.copy_(params[k][i])
@@ -261,29 +319,29 @@ class BaseModel(nn.Module):
         """
         grad_norm = 0
 
-        if 'w' in mode:
+        if "w" in mode:
             for w in self.weights:
-                grad_norm += torch.sum(w.grad ** 2)
+                grad_norm += torch.sum(w.grad**2)
 
-        if 'b'in mode:
+        if "b" in mode:
             for b in self.biases:
-                grad_norm += torch.sum(b.grad ** 2)
+                grad_norm += torch.sum(b.grad**2)
 
-        if 'x' in mode:
+        if "x" in mode:
             for ep in self.extra_params:
                 if ep.requires_grad:
-                    grad_norm += torch.sum(ep.grad ** 2)
+                    grad_norm += torch.sum(ep.grad**2)
 
         return torch.sqrt(grad_norm)
 
     def save_parameters(self, exp_path, mode="wbx"):
         params = self.get_parameters(mode=mode)
         # save
-        with open(os.path.join(exp_path, "params_"+mode), 'wb') as f:
+        with open(os.path.join(exp_path, "params_" + mode), "wb") as f:
             pickle.dump(params, f)
 
     def load_parameters(self, exp_path, mode="wbx"):
-        with open(os.path.join(exp_path, "params_"+mode), 'rb') as f:
+        with open(os.path.join(exp_path, "params_" + mode), "rb") as f:
             params = pickle.load(f)
         self.set_parameters(params, mode=mode)
 
