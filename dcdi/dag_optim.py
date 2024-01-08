@@ -57,7 +57,7 @@ def compute_dag_constraint(w_adj):
     :param np.ndarray w_adj: the weighted adjacency matrix (each entry in [0,1])
     """
     assert (w_adj >= 0).detach().cpu().numpy().all()
-    #mod_adj = w_adj * (1 - w_adj).T
+    # mod_adj = w_adj * (1 - w_adj).T
     h = TrExpScipy.apply(w_adj) - w_adj.shape[0]
     return h
 
@@ -99,7 +99,7 @@ class GumbelAdjacency(torch.nn.Module):
 
     def reset_parameters(self):
         torch.nn.init.constant_(self.log_alpha, 1e-5)
-        #torch.nn.init.uniform(self.log_alpha, a=1e-5, b=1e-5)
+        # torch.nn.init.uniform(self.log_alpha, a=1e-5, b=1e-5)
 
 
 class GumbelIntervWeight(torch.nn.Module):

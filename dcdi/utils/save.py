@@ -60,7 +60,7 @@ def np_to_csv(array, save_path):
     :return: output_path, the path to the csv file
     """
     id = str(uuid.uuid4())
-    output_path = os.path.join(os.path.dirname(save_path), 'tmp_' + id + '.csv')
+    output_path = os.path.join(os.path.dirname(save_path), "tmp_" + id + ".csv")
 
     df = pd.DataFrame(array)
     df.to_csv(output_path, header=False, index=False)

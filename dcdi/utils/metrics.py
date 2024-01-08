@@ -19,7 +19,9 @@ def edge_errors(pred, target):
 
     """
     true_labels = retrieve_adjacency_matrix(target)
-    predictions = retrieve_adjacency_matrix(pred, target.nodes() if isinstance(target, nx.DiGraph) else None)
+    predictions = retrieve_adjacency_matrix(
+        pred, target.nodes() if isinstance(target, nx.DiGraph) else None
+    )
 
     diff = true_labels - predictions
 
@@ -49,7 +51,9 @@ def edge_accurate(pred, target):
 
     """
     true_labels = retrieve_adjacency_matrix(target)
-    predictions = retrieve_adjacency_matrix(pred, target.nodes() if isinstance(target, nx.DiGraph) else None)
+    predictions = retrieve_adjacency_matrix(
+        pred, target.nodes() if isinstance(target, nx.DiGraph) else None
+    )
 
     total_edges = (true_labels).sum()
 

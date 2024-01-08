@@ -19,7 +19,8 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 """
 import sys
 import math
-sys.path.insert(0, '../')
+
+sys.path.insert(0, "../")
 
 import numpy as np
 import torch
@@ -30,21 +31,34 @@ from .base_model import BaseModel
 
 
 class LearnableModel(BaseModel):
-    def __init__(self, num_vars, num_layers, hid_dim, num_params,
-                 nonlin="leaky-relu", intervention=False,
-                 intervention_type="perfect",
-                 intervention_knowledge="known", num_regimes=1):
-
-        super(LearnableModel, self).__init__(num_vars, num_layers, hid_dim, num_params,
-                                             nonlin=nonlin,
-                                             intervention=intervention,
-                                             intervention_type=intervention_type,
-                                             intervention_knowledge=intervention_knowledge,
-                                             num_regimes=num_regimes)
+    def __init__(
+        self,
+        num_vars,
+        num_layers,
+        hid_dim,
+        num_params,
+        nonlin="leaky-relu",
+        intervention=False,
+        intervention_type="perfect",
+        intervention_knowledge="known",
+        num_regimes=1,
+    ):
+        super(LearnableModel, self).__init__(
+            num_vars,
+            num_layers,
+            hid_dim,
+            num_params,
+            nonlin=nonlin,
+            intervention=intervention,
+            intervention_type=intervention_type,
+            intervention_knowledge=intervention_knowledge,
+            num_regimes=num_regimes,
+        )
         self.reset_params()
 
-    def compute_log_likelihood(self, x, weights, biases, extra_params,
-                               detach=False, mask=None, regime=None):
+    def compute_log_likelihood(
+        self, x, weights, biases, extra_params, detach=False, mask=None, regime=None
+    ):
         """
         Return log-likelihood of the model for each example.
         WARNING: This is really a joint distribution only if the DAGness constraint on the mask is satisfied.
@@ -57,7 +71,6 @@ class LearnableModel(BaseModel):
         :return: (batch_size, num_vars) log-likelihoods
         """
         density_params = self.forward_given_params(x, weights, biases, mask, regime)
-
 
         if len(extra_params) != 0:
             extra_params = self.transform_extra_params(self.extra_params)
@@ -81,23 +94,39 @@ class LearnableModel(BaseModel):
 
 
 class LearnableModel_NonLinGaussANM(LearnableModel):
-    def __init__(self, num_vars, num_layers, hid_dim, nonlin="leaky-relu",
-                 intervention=False,
-                 intervention_type="perfect",
-                 intervention_knowledge="known",
-                 num_regimes=1):
-        super(LearnableModel_NonLinGaussANM, self).__init__(num_vars, num_layers, hid_dim, 1, nonlin=nonlin,
-                                                            intervention=intervention,
-                                                            intervention_type=intervention_type,
-                                                            intervention_knowledge=intervention_knowledge,
-                                                            num_regimes=num_regimes)
+    def __init__(
+        self,
+        num_vars,
+        num_layers,
+        hid_dim,
+        nonlin="leaky-relu",
+        intervention=False,
+        intervention_type="perfect",
+        intervention_knowledge="known",
+        num_regimes=1,
+    ):
+        super(LearnableModel_NonLinGaussANM, self).__init__(
+            num_vars,
+            num_layers,
+            hid_dim,
+            1,
+            nonlin=nonlin,
+            intervention=intervention,
+            intervention_type=intervention_type,
+            intervention_knowledge=intervention_knowledge,
+            num_regimes=num_regimes,
+        )
         # extra parameters are log_std
         extra_params = np.ones((self.num_vars,))
         np.random.shuffle(extra_params)
         # each element in the list represents a variable, the size of the element is the number of extra_params per var
         self.extra_params = nn.ParameterList()
         for extra_param in extra_params:
-            self.extra_params.append(nn.Parameter(torch.tensor(np.log(extra_param).reshape(1)).type(torch.Tensor)))
+            self.extra_params.append(
+                nn.Parameter(
+                    torch.tensor(np.log(extra_param).reshape(1)).type(torch.Tensor)
+                )
+            )
 
     def get_distribution(self, dp):
         return torch.distributions.normal.Normal(dp[0], dp[1])

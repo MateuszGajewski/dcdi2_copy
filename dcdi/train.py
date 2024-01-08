@@ -83,7 +83,6 @@ def compute_loss(
         return (
             loss,
             torch.sqrt(torch.var(joint_log_likelihood) / joint_log_likelihood.size(0)),
-            
         )
 
 
@@ -188,21 +187,21 @@ def train(
 
         w_adj = model.get_w_adj()
         # constraint related
-        #w_adj = m[0]  # model.get_w_adj()
+        # w_adj = m[0]  # model.get_w_adj()
         if opt.cpdag:
             w_adj = w_adj * (1 - w_adj.T)
         h = compute_dag_constraint(w_adj) / constraint_normalization
-        '''
+        """
         for i in range(1, m.shape[0]):
             w_adj = m[i]
             w_adj = w_adj * (1 - w_adj.T)
             h += compute_dag_constraint(w_adj) / constraint_normalization
         h /= m.shape[0]
-        '''
+        """
         constraint_violation = h.item()
 
         w_adj = model.get_w_adj()
-        #constraint_violation = (compute_dag_constraint(w_adj) / constraint_normalization).item()
+        # constraint_violation = (compute_dag_constraint(w_adj) / constraint_normalization).item()
         # compute regularizer
         reg = opt.reg_coeff * compute_penalty([w_adj], p=1)
         reg /= w_adj.shape[0] ** 2
@@ -249,7 +248,7 @@ def train(
         if iter % opt.stop_crit_win == 0:
             with torch.no_grad():
                 x, mask, regime = test_data.sample(test_data.num_samples)
-                loss_val  = compute_loss(
+                loss_val = compute_loss(
                     x,
                     mask,
                     regime,
