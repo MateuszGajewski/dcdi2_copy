@@ -255,8 +255,6 @@ if __name__ == "__main__":
     parser.add_argument("--float", action="store_true", help="Use Float precision")
 
     # cpdag condition
-    parser.add_argument(
-        "--cpdag", action='store_true', help="Use CPDAG constraint"
-    )
+    parser.add_argument("--cpdag", action="store_true", help="Use CPDAG constraint")
 
     main(parser.parse_args())
