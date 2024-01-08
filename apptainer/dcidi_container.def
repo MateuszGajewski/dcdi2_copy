@@ -1,14 +1,27 @@
 BootStrap: docker
 From: ubuntu:22.04
 
+%files
+	./requirements_cp310.txt
+
 %post
 	TZ=Europe/Berlin
 	ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+	
+	apt -y update && apt -y upgrade 
 
-	apt-get -y update
-	apt-get update && apt-get install -y gnupg2
+	# Install python
+	apt install -y python3-pip 
+	pip3 install --upgrade pip
+
+	echo "PYTHON VERSION"
+	python3 --version # 3.10.12
+	pip3 --version # 23.3.2
+
+	# Install R and required packages
+	apt install -y gnupg2
 	apt install software-properties-common -y
-    
+
 	apt-get install r-base -y
 
 	apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
@@ -36,10 +49,15 @@ From: ubuntu:22.04
 	Rscript -e 'install.packages("https://cran.r-project.org/src/contrib/sparsebnUtils_0.0.8.tar.gz", repos=NULL, type="source")'
 	Rscript -e 'BiocManager::install(c("ccdrAlgorithm", "discretecdAlgorithm"))'
 
+	# Install python requirements
+	pip3 install -r requirements_cp310.txt
+
+    # Clean cache to reduce size of the image
+    apt clean
+    rm -r $(pip cache dir)/*
+
 %startscript
 	PATH=$PATH:$HOME/.local/bin
-
-	
 
 %labels
    Author Ja
