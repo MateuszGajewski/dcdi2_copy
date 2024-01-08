@@ -189,7 +189,8 @@ def train(
         w_adj = model.get_w_adj()
         # constraint related
         #w_adj = m[0]  # model.get_w_adj()
-        w_adj = w_adj * (1 - w_adj.T)
+        if opt.cpdag:
+            w_adj = w_adj * (1 - w_adj.T)
         h = compute_dag_constraint(w_adj) / constraint_normalization
         '''
         for i in range(1, m.shape[0]):
@@ -297,7 +298,10 @@ def train(
                 to_keep = (model.get_w_adj() > 0.5).type(torch.Tensor)
                 current_adj = model.adjacency * to_keep
                 current_adj = current_adj.cpu().numpy()
-                acyclic = is_acyclic(current_adj * (1 - current_adj.T))
+                if opt.cpdag:
+                    acyclic = is_acyclic(current_adj * (1 - current_adj.T))
+                else:
+                    acyclic = is_acyclic(current_adj)
 
             metrics_callback(
                 stage="train",
