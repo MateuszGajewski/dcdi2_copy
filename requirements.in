@@ -1,0 +1,11 @@
+git+https://gitlab.com/awarelab/mrunner.git@a195d266351e0b992a1e8d434f3c7ed4d7606b0b
+cdt
+joblib
+Pillow
+pandas
+scikit-learn
+seaborn
+torch==2.1.0
+tqdm
+
+pip-tools
