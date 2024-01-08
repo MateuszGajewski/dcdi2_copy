@@ -47,7 +47,7 @@ class TrExpScipy(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output):
         with torch.no_grad():
-            expm_input, = ctx.saved_tensors
+            (expm_input,) = ctx.saved_tensors
             return expm_input.t() * grad_output
 
 
@@ -57,6 +57,7 @@ def compute_dag_constraint(w_adj):
     :param np.ndarray w_adj: the weighted adjacency matrix (each entry in [0,1])
     """
     assert (w_adj >= 0).detach().cpu().numpy().all()
+    # mod_adj = w_adj * (1 - w_adj).T
     h = TrExpScipy.apply(w_adj) - w_adj.shape[0]
     return h
 
@@ -69,7 +70,8 @@ def is_acyclic(adjacency):
     prod = np.eye(adjacency.shape[0])
     for _ in range(1, adjacency.shape[0] + 1):
         prod = np.matmul(adjacency, prod)
-        if np.trace(prod) != 0: return False
+        if np.trace(prod) != 0:
+            return False
     return True
 
 
@@ -79,6 +81,7 @@ class GumbelAdjacency(torch.nn.Module):
     Gumbel straigth-through estimator.
     :param int num_vars: number of variables
     """
+
     def __init__(self, num_vars):
         super(GumbelAdjacency, self).__init__()
         self.num_vars = num_vars
@@ -95,7 +98,8 @@ class GumbelAdjacency(torch.nn.Module):
         return torch.sigmoid(self.log_alpha)
 
     def reset_parameters(self):
-        torch.nn.init.constant_(self.log_alpha, 5)
+        torch.nn.init.constant_(self.log_alpha, 1e-5)
+        # torch.nn.init.uniform(self.log_alpha, a=1e-5, b=1e-5)
 
 
 class GumbelIntervWeight(torch.nn.Module):
@@ -105,6 +109,7 @@ class GumbelIntervWeight(torch.nn.Module):
     :param int num_vars: number of variables
     :param int num_regimes: number of regimes in the data
     """
+
     def __init__(self, num_vars, num_regimes):
         super(GumbelIntervWeight, self).__init__()
         self.num_vars = num_vars
@@ -112,7 +117,7 @@ class GumbelIntervWeight(torch.nn.Module):
 
         # the column associated to the observational regime is set to one
         self.log_alpha_obs = torch.ones((num_vars, 1)) * 10000
-        self.log_alpha = torch.nn.Parameter(torch.ones((num_vars, num_regimes-1)) * 3)
+        self.log_alpha = torch.nn.Parameter(torch.ones((num_vars, num_regimes - 1)) * 3)
 
         self.uniform = torch.distributions.uniform.Uniform(0, 1)
 
@@ -120,7 +125,9 @@ class GumbelIntervWeight(torch.nn.Module):
         # if observational regime, always return a mask full of one
         log_alpha = torch.cat((self.log_alpha_obs, self.log_alpha), dim=1)
         regime = regime.type(torch.LongTensor)
-        interv_w = gumbel_sigmoid(log_alpha[:,regime], self.uniform, 1, tau=tau, hard=drawhard)
+        interv_w = gumbel_sigmoid(
+            log_alpha[:, regime], self.uniform, 1, tau=tau, hard=drawhard
+        )
         interv_w = interv_w.squeeze().transpose(0, 1)
         return interv_w
 

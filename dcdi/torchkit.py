@@ -9,7 +9,7 @@ from torch import nn
 from torch.nn import functional as F
 
 delta = 1e-6
-c = - 0.5 * np.log(2 * np.pi)
+c = -0.5 * np.log(2 * np.pi)
 
 
 def log(x):
@@ -17,7 +17,7 @@ def log(x):
 
 
 def log_normal(x, mean, log_var, eps=0.00001):
-    return - (x - mean) ** 2 / (2. * torch.exp(log_var) + eps) - log_var / 2. + c
+    return -((x - mean) ** 2) / (2.0 * torch.exp(log_var) + eps) - log_var / 2.0 + c
 
 
 def logsigmoid(x):
@@ -59,20 +59,21 @@ def softmax(x, dim=-1):
 
 
 class BaseFlow(torch.nn.Module):
-
     def sample(self, n=1, context=None, **kwargs):
         dim = self.dim
         if isinstance(self.dim, int):
-            dim = [dim, ]
+            dim = [
+                dim,
+            ]
 
         spl = Variable(torch.FloatTensor(n, *dim).normal_())
-        lgd = Variable(torch.from_numpy(
-            np.zeros(n).astype('float32')))
+        lgd = Variable(torch.from_numpy(np.zeros(n).astype("float32")))
         if context is None:
-            context = Variable(torch.from_numpy(
-                np.ones((n, self.context_dim)).astype('float32')))
+            context = Variable(
+                torch.from_numpy(np.ones((n, self.context_dim)).astype("float32"))
+            )
 
-        if hasattr(self, 'gpu'):
+        if hasattr(self, "gpu"):
             if self.gpu:
                 spl = spl.cuda()
                 lgd = lgd.cuda()
@@ -112,9 +113,9 @@ class SigmoidFlow(BaseFlow):
     def forward(self, x, logdet, dsparams, mollify=0.0, delta=delta):
         ndim = self.num_ds_dim
         # Apply activation functions to the parameters produced by the hypernetwork
-        a_ = self.act_a(dsparams[:, :, 0: 1 * ndim])
-        b_ = self.act_b(dsparams[:, :, 1 * ndim: 2 * ndim])
-        w = self.act_w(dsparams[:, :, 2 * ndim: 3 * ndim])
+        a_ = self.act_a(dsparams[:, :, 0 : 1 * ndim])
+        b_ = self.act_b(dsparams[:, :, 1 * ndim : 2 * ndim])
+        w = self.act_w(dsparams[:, :, 2 * ndim : 3 * ndim])
 
         a = a_ * (1 - mollify) + 1.0 * mollify
         b = b_ * (1 - mollify) + 0.0 * mollify
@@ -126,13 +127,18 @@ class SigmoidFlow(BaseFlow):
         x_ = log(x_pre_clipped) - log(1 - x_pre_clipped)  # Logit function (so H)
         xnew = x_
 
-        logj = F.log_softmax(dsparams[:, :, 2 * ndim: 3 * ndim], dim=2) + \
-               logsigmoid(pre_sigm) + \
-               logsigmoid(-pre_sigm) + log(a)
+        logj = (
+            F.log_softmax(dsparams[:, :, 2 * ndim : 3 * ndim], dim=2)
+            + logsigmoid(pre_sigm)
+            + logsigmoid(-pre_sigm)
+            + log(a)
+        )
 
         logj = log_sum_exp(logj, 2).sum(2)
 
-        logdet_ = logj + np.log(1 - delta) - (log(x_pre_clipped) + log(-x_pre_clipped + 1))
+        logdet_ = (
+            logj + np.log(1 - delta) - (log(x_pre_clipped) + log(-x_pre_clipped + 1))
+        )
         logdet += logdet_
 
         return xnew, logdet

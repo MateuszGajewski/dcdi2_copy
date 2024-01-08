@@ -8,18 +8,35 @@ class FlowModel(BaseModel):
     """
     Abstract class for normalizing flow model
     """
-    def __init__(self, num_vars, num_layers, hid_dim, num_params, nonlin="leaky-relu",
-                 intervention=False, intervention_type="perfect",
-                 intervention_knowledge="known", num_regimes=1):
-        super().__init__(num_vars, num_layers, hid_dim, num_params, nonlin=nonlin,
-                         intervention=intervention,
-                         intervention_type=intervention_type,
-                         intervention_knowledge=intervention_knowledge,
-                         num_regimes=num_regimes)
+
+    def __init__(
+        self,
+        num_vars,
+        num_layers,
+        hid_dim,
+        num_params,
+        nonlin="leaky-relu",
+        intervention=False,
+        intervention_type="perfect",
+        intervention_knowledge="known",
+        num_regimes=1,
+    ):
+        super().__init__(
+            num_vars,
+            num_layers,
+            hid_dim,
+            num_params,
+            nonlin=nonlin,
+            intervention=intervention,
+            intervention_type=intervention_type,
+            intervention_knowledge=intervention_knowledge,
+            num_regimes=num_regimes,
+        )
         self.reset_params()
 
-    def compute_log_likelihood(self, x, weights, biases, extra_params,
-                               detach=False, mask=None, regime=None):
+    def compute_log_likelihood(
+        self, x, weights, biases, extra_params, detach=False, mask=None, regime=None
+    ):
         """
         Return log-likelihood of the model for each example.
         WARNING: This is really a joint distribution only if the DAGness constraint on the mask is satisfied.
@@ -41,9 +58,19 @@ class FlowModel(BaseModel):
 
 
 class DeepSigmoidalFlowModel(FlowModel):
-    def __init__(self, num_vars, cond_n_layers, cond_hid_dim, cond_nonlin, flow_n_layers, flow_hid_dim,
-                 intervention=False, intervention_type="perfect",
-                 intervention_knowledge="known", num_regimes=1):
+    def __init__(
+        self,
+        num_vars,
+        cond_n_layers,
+        cond_hid_dim,
+        cond_nonlin,
+        flow_n_layers,
+        flow_hid_dim,
+        intervention=False,
+        intervention_type="perfect",
+        intervention_knowledge="known",
+        num_regimes=1,
+    ):
         """
         Deep Sigmoidal Flow model
 
@@ -61,12 +88,20 @@ class DeepSigmoidalFlowModel(FlowModel):
         flow_n_conditioned = flow_hid_dim
 
         # Conditioner model initialization
-        n_conditioned_params = flow_n_conditioned * 3 * flow_n_layers  # Number of conditional params for each variable
-        super().__init__(num_vars, cond_n_layers, cond_hid_dim, num_params=n_conditioned_params, nonlin=cond_nonlin,
-                         intervention=intervention,
-                         intervention_type=intervention_type,
-                         intervention_knowledge=intervention_knowledge,
-                         num_regimes=num_regimes)
+        n_conditioned_params = (
+            flow_n_conditioned * 3 * flow_n_layers
+        )  # Number of conditional params for each variable
+        super().__init__(
+            num_vars,
+            cond_n_layers,
+            cond_hid_dim,
+            num_params=n_conditioned_params,
+            nonlin=cond_nonlin,
+            intervention=intervention,
+            intervention_type=intervention_type,
+            intervention_knowledge=intervention_knowledge,
+            num_regimes=num_regimes,
+        )
         self.cond_n_layers = cond_n_layers
         self.cond_hid_dim = cond_hid_dim
         self.cond_nonlin = cond_nonlin
@@ -74,14 +109,21 @@ class DeepSigmoidalFlowModel(FlowModel):
         # Flow model initialization
         self.flow_n_layers = flow_n_layers
         self.flow_hid_dim = flow_hid_dim
-        self.flow_n_params_per_var = flow_hid_dim * 3 * flow_n_layers  # total number of params
-        self.flow_n_cond_params_per_var = n_conditioned_params  # number of conditional params
-        self.flow_n_params_per_layer = flow_hid_dim * 3  # number of params in each flow layer
+        self.flow_n_params_per_var = (
+            flow_hid_dim * 3 * flow_n_layers
+        )  # total number of params
+        self.flow_n_cond_params_per_var = (
+            n_conditioned_params  # number of conditional params
+        )
+        self.flow_n_params_per_layer = (
+            flow_hid_dim * 3
+        )  # number of params in each flow layer
         self.flow = SigmoidFlow(flow_hid_dim)
 
         # Shared density parameters (i.e, those that are not produced by the conditioner)
-        self.shared_density_params = torch.nn.Parameter(torch.zeros(self.flow_n_params_per_var -
-                                                                    self.flow_n_cond_params_per_var))
+        self.shared_density_params = torch.nn.Parameter(
+            torch.zeros(self.flow_n_params_per_var - self.flow_n_cond_params_per_var)
+        )
 
     def reset_params(self):
         super().reset_params()
@@ -100,7 +142,9 @@ class DeepSigmoidalFlowModel(FlowModel):
         :return: pseudo joint log-likelihood
         """
         # Convert the shape to (batch_size, n_vars, n_flow_params_per_var)
-        density_params = torch.cat([x[None, :, :] for x in density_params], dim=0).transpose(0, 1)
+        density_params = torch.cat(
+            [x[None, :, :] for x in density_params], dim=0
+        ).transpose(0, 1)
         assert len(density_params.shape) == 3
         assert density_params.shape[0] == x.shape[0]
         assert density_params.shape[1] == self.num_vars
@@ -110,27 +154,35 @@ class DeepSigmoidalFlowModel(FlowModel):
         # Add the shared density parameters in each layer's parameter vectors
         # The shared parameters are different for each layer
         # All batch elements receive the same shared parameters
-        conditional = density_params.view(density_params.shape[0], density_params.shape[1], self.flow_n_layers, 3, -1)
-        shared = \
-            self.shared_density_params.view(self.flow_n_layers, 3, -1)[None, None, :, :, :].repeat(conditional.shape[0],
-                                                                                                   conditional.shape[1],
-                                                                                                   1, 1, 1)
-        density_params = torch.cat((conditional, shared), -1).view(conditional.shape[0], conditional.shape[1], -1)
+        conditional = density_params.view(
+            density_params.shape[0], density_params.shape[1], self.flow_n_layers, 3, -1
+        )
+        shared = self.shared_density_params.view(self.flow_n_layers, 3, -1)[
+            None, None, :, :, :
+        ].repeat(conditional.shape[0], conditional.shape[1], 1, 1, 1)
+        density_params = torch.cat((conditional, shared), -1).view(
+            conditional.shape[0], conditional.shape[1], -1
+        )
         assert density_params.shape[2] == self.flow_n_params_per_var
 
         logdet = Variable(torch.zeros((x.shape[0], self.num_vars)))
         h = x.view(x.size(0), -1)
         for i in range(self.flow_n_layers):
             # Extract params of the current flow layer. Shape is (batch_size, n_vars, self.flow_n_params_per_layer)
-            params = density_params[:, :, i * self.flow_n_params_per_layer: (i + 1) * self.flow_n_params_per_layer]
+            params = density_params[
+                :,
+                :,
+                i * self.flow_n_params_per_layer : (i + 1)
+                * self.flow_n_params_per_layer,
+            ]
             h, logdet = self.flow(h, logdet, params)
 
         assert x.shape[0] == h.shape[0]
         assert x.shape[1] == h.shape[1]
         zeros = Variable(torch.zeros(x.shape[0], self.num_vars))
         # Not the joint NLL until we have a DAG
-        pseudo_joint_nll = - log_normal(h, zeros, zeros + 1.0) - logdet
+        pseudo_joint_nll = -log_normal(h, zeros, zeros + 1.0) - logdet
 
         # We return the log product (averaged) of conditionals instead of the logp for each conditional.
         #      Shape is (batch x 1) instead of (batch x n_vars).
-        return - pseudo_joint_nll
+        return -pseudo_joint_nll
