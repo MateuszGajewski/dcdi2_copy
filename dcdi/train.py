@@ -24,7 +24,6 @@ import time
 import cdt
 import numpy as np
 import torch
-from cdt.utils.R import RPackages, launch_R_script
 
 from .dag_optim import compute_dag_constraint, is_acyclic
 from .plot import (
@@ -81,8 +80,10 @@ def compute_loss(
         return loss
     else:
         joint_log_likelihood = torch.mean(log_likelihood * mask, dim=1)
-        return loss, torch.sqrt(
-            torch.var(joint_log_likelihood) / joint_log_likelihood.size(0)
+        return (
+            loss,
+            torch.sqrt(torch.var(joint_log_likelihood) / joint_log_likelihood.size(0)),
+            
         )
 
 
@@ -165,7 +166,7 @@ def train(
     # Learning loop:
     for iter in range(opt.num_train_iter):
         # compute loss
-        model.train()
+        model.train
         x, mask, regime = train_data.sample(opt.train_batch_size)
         weights, biases, extra_params = model.get_parameters(mode="wbx")
 
@@ -185,11 +186,22 @@ def train(
         nlls.append(loss.item())
         model.eval()
 
-        # constraint related
         w_adj = model.get_w_adj()
+        # constraint related
+        #w_adj = m[0]  # model.get_w_adj()
+        w_adj = w_adj * (1 - w_adj.T)
         h = compute_dag_constraint(w_adj) / constraint_normalization
+        '''
+        for i in range(1, m.shape[0]):
+            w_adj = m[i]
+            w_adj = w_adj * (1 - w_adj.T)
+            h += compute_dag_constraint(w_adj) / constraint_normalization
+        h /= m.shape[0]
+        '''
         constraint_violation = h.item()
 
+        w_adj = model.get_w_adj()
+        #constraint_violation = (compute_dag_constraint(w_adj) / constraint_normalization).item()
         # compute regularizer
         reg = opt.reg_coeff * compute_penalty([w_adj], p=1)
         reg /= w_adj.shape[0] ** 2
@@ -236,7 +248,7 @@ def train(
         if iter % opt.stop_crit_win == 0:
             with torch.no_grad():
                 x, mask, regime = test_data.sample(test_data.num_samples)
-                loss_val = compute_loss(
+                loss_val  = compute_loss(
                     x,
                     mask,
                     regime,
@@ -247,7 +259,8 @@ def train(
                     opt.intervention,
                     opt.intervention_type,
                     opt.intervention_knowledge,
-                ).item()
+                )
+                loss_val = loss_val.item()
 
                 nlls_val.append(loss_val)
                 aug_lagrangians_val.append([iter, loss_val + not_nlls[-1]])
@@ -284,7 +297,7 @@ def train(
                 to_keep = (model.get_w_adj() > 0.5).type(torch.Tensor)
                 current_adj = model.adjacency * to_keep
                 current_adj = current_adj.cpu().numpy()
-                acyclic = is_acyclic(current_adj)
+                acyclic = is_acyclic(current_adj * (1 - current_adj.T))
 
             metrics_callback(
                 stage="train",
@@ -431,7 +444,8 @@ def train(
                             opt.intervention,
                             opt.intervention_type,
                             opt.intervention_knowledge,
-                        ).item()
+                        )
+                    loss_val = loss_val.item()
                     aug_lagrangian_val = loss_val + not_nlls[-1]
 
                     if aug_lagrangian_val < best_lagrangian_val:
@@ -476,7 +490,8 @@ def train(
                             opt.intervention,
                             opt.intervention_type,
                             opt.intervention_knowledge,
-                        ).item()
+                        )
+                        loss_val = loss_val.item()
 
                     # nll_val the best?
                     if loss_val < best_nll_val:
@@ -634,7 +649,8 @@ def train(
                     opt.intervention,
                     opt.intervention_type,
                     opt.intervention_knowledge,
-                ).item()
+                )
+                nll_val = nll_val.item()
 
                 # Compute SHD and SID metrics
                 pred_adj_ = model.adjacency.detach().cpu().numpy()

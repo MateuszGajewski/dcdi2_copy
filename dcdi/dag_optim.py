@@ -98,7 +98,7 @@ class GumbelAdjacency(torch.nn.Module):
         return torch.sigmoid(self.log_alpha)
 
     def reset_parameters(self):
-        torch.nn.init.constant_(self.log_alpha, 5)
+        torch.nn.init.constant_(self.log_alpha, 1e-5)
         #torch.nn.init.uniform(self.log_alpha, a=1e-5, b=1e-5)
 
 
