@@ -18,15 +18,16 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER I
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
-import os
 import argparse
 import copy
+import os
+
 import numpy as np
 
 from dcdi.main import main
 
 
-if __name__ == "__main__":
+def get_parser():
     parser = argparse.ArgumentParser()
 
     # experiment
@@ -57,9 +58,7 @@ if __name__ == "__main__":
         "--data-path", type=str, default=None, help="Path to data files"
     )
     parser.add_argument("--i-dataset", type=str, default=None, help="dataset index")
-    parser.add_argument(
-        "--num-vars", required=True, type=int, default=2, help="Number of variables"
-    )
+    parser.add_argument("--num-vars", type=int, default=2, help="Number of variables")
     parser.add_argument(
         "--train-samples",
         type=int,
@@ -106,7 +105,7 @@ if __name__ == "__main__":
 
     # model
     parser.add_argument(
-        "--model", type=str, required=True, help="model class (DCDI-G or DCDI-DSF)"
+        "--model", type=str, default="DCDI-DSF", help="model class (DCDI-G or DCDI-DSF)"
     )
     parser.add_argument(
         "--num-layers", type=int, default=2, help="number of hidden layers"
@@ -256,5 +255,13 @@ if __name__ == "__main__":
 
     # cpdag condition
     parser.add_argument("--cpdag", action="store_true", help="Use CPDAG constraint")
+    return parser
 
-    main(parser.parse_args())
+
+def parse_args(args=None):
+    parser = get_parser()
+    return parser.parse_args(args=args)
+
+
+if __name__ == "__main__":
+    main(parse_args())

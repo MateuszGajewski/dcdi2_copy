@@ -19,10 +19,10 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 
 """
 import os
-import torch
 
 # To avoid displaying the figures
 import matplotlib
+import torch
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -289,7 +289,7 @@ def plot_learning_curves(
 
     fig.tight_layout()
     fig.savefig(
-        os.path.join(exp_path, "learning-curves.png"), bbox_inches="tight", padding=0
+        os.path.join(exp_path, "learning-curves.png"), bbox_inches="tight", pad_inches=0
     )
     fig.clf()
 
@@ -590,6 +590,6 @@ def plot_learning_curves_retrain(losses, losses_val, nlls, nlls_val, exp_path):
 
     fig.tight_layout()
     fig.savefig(
-        os.path.join(exp_path, "learning-curves.png"), bbox_inches="tight", padding=0
+        os.path.join(exp_path, "learning-curves.png"), bbox_inches="tight", pad_inches=0
     )
     fig.clf()

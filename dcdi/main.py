@@ -18,17 +18,17 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER I
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
-import os
 import argparse
+import os
+
 import cdt
-import torch
 import numpy as np
+import torch
 
-
-from dcdi.models.learnables import LearnableModel_NonLinGaussANM
-from dcdi.models.flows import DeepSigmoidalFlowModel
-from dcdi.train import train, retrain, compute_loss
 from dcdi.data import DataManagerFile
+from dcdi.models.flows import DeepSigmoidalFlowModel
+from dcdi.models.learnables import LearnableModel_NonLinGaussANM
+from dcdi.train import compute_loss, retrain, train
 from dcdi.utils.save import dump
 
 
@@ -57,6 +57,10 @@ def main(opt, metrics_callback=_print_metrics, plotting_callback=None):
             opt.lr_schedule is None
         ), "--lr-reinit and --lr-schedule are mutually exclusive"
 
+    # create experiment path
+    if not os.path.exists(opt.exp_path):
+        os.makedirs(opt.exp_path)
+
     # Dump hyperparameters to disk
     dump(opt.__dict__, opt.exp_path, "opt")
 
@@ -80,9 +84,16 @@ def main(opt, metrics_callback=_print_metrics, plotting_callback=None):
         else:
             torch.set_default_tensor_type("torch.DoubleTensor")
 
-    # create experiment path
-    if not os.path.exists(opt.exp_path):
-        os.makedirs(opt.exp_path)
+    # if opt.gpu:
+    #     if opt.float:
+    #         torch.set_default_dtype("torch.cuda.FloatTensor")
+    #     else:
+    #         torch.set_default_dtype("torch.cuda.DoubleTensor")
+    # else:
+    #     if opt.float:
+    #         torch.set_default_dtype("torch.FloatTensor")
+    #     else:
+    #         torch.set_default_dtype("torch.DoubleTensor")
 
     # raise error if not valid setting
     if not (

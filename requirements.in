@@ -1,4 +1,4 @@
-git+https://gitlab.com/awarelab/mrunner.git@a195d266351e0b992a1e8d434f3c7ed4d7606b0b
+git+https://gitlab.com/awarelab/mrunner.git@d7cdb51210e30c4ee371c73f028bd6dba0d4fad2
 cdt
 joblib
 Pillow
