@@ -11,6 +11,7 @@ persons to whom the Software is furnished to do so, subject to the following con
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
 Software.
 
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
 WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
 COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
@@ -32,7 +33,9 @@ class TrExpScipy(torch.autograd.Function):
     def forward(ctx, input):
         with torch.no_grad():
             # send tensor to cpu in numpy format and compute expm using scipy
-            expm_input = expm(input.detach().cpu().numpy())
+            #Original formulation
+            #expm_input = expm(input.detach().cpu().numpy())
+            expm_input = torch.matrix_exp(input) #speed up
             # transform back into a tensor
             expm_input = torch.as_tensor(expm_input)
             if input.is_cuda:
