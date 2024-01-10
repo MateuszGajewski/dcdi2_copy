@@ -347,8 +347,8 @@ def train(
             )
             if opt.intervention_knowledge == "unknown":
                 gumbel_interv = model.gumbel_interv_w.get_proba().detach().cpu().numpy()
-                np.save(os.path.join(save_path, "gumbel_interv"), gumbel_interv)
-                np.save(os.path.join(save_path, "gt_interv"), gt_interv)
+                # np.save(os.path.join(save_path, "gumbel_interv"), gumbel_interv)
+                # np.save(os.path.join(save_path, "gt_interv"), gt_interv)
                 plot_interv_w(gumbel_interv, gt_interv, opt.exp_path)
                 plot_interv_w(
                     model.gumbel_interv_w.get_proba().detach().cpu().numpy(),
@@ -550,35 +550,35 @@ def train(
                         diff = np.sum(np.abs(gt_interv - gb_binary))
                         tp = np.sum((gt_interv == gb_binary) & (gb_binary == 1))
                         fp = np.sum((gt_interv != gb_binary) & (gb_binary == 1))
-                        dump(
-                            f"diff: {diff}, tp: {tp}, fp:{fp}",
-                            save_path,
-                            "regime_learned",
-                            True,
-                        )
+                        # dump(
+                        #     f"diff: {diff}, tp: {tp}, fp:{fp}",
+                        #     save_path,
+                        #     "regime_learned",
+                        #     True,
+                        # )
 
                 # Save
                 if not opt.no_w_adjs_log:
                     w_adjs = w_adjs[:iter]
-                dump(model, save_path, "model")
-                dump(opt.__dict__, save_path, "opt")
-                if opt.num_vars <= 50 and not opt.no_w_adjs_log:
-                    dump(w_adjs, save_path, "w_adjs")
-                dump(nll_train, save_path, "pseudo-nll-train")
-                dump(nll_val, save_path, "pseudo-nll-val")
-                dump(nlls, save_path, "nlls")
-                dump(nlls_val, save_path, "nlls-val")
-                dump(not_nlls, save_path, "not-nlls")
-                dump(aug_lagrangians, save_path, "aug-lagrangians")
-                dump(aug_lagrangian_ma[:iter], save_path, "aug-lagrangian-ma")
-                dump(aug_lagrangians_val, save_path, "aug-lagrangians-val")
-                dump(grad_norms, save_path, "grad-norms")
-                dump(grad_norm_ma[:iter], save_path, "grad-norm-ma")
-                dump(timing, save_path, "timing")
-                np.save(
-                    os.path.join(save_path, "DAG"),
-                    model.adjacency.detach().cpu().numpy(),
-                )
+                # dump(model, save_path, "model")
+                # dump(opt.__dict__, save_path, "opt")
+                # if opt.num_vars <= 50 and not opt.no_w_adjs_log:
+                #     dump(w_adjs, save_path, "w_adjs")
+                # dump(nll_train, save_path, "pseudo-nll-train")
+                # dump(nll_val, save_path, "pseudo-nll-val")
+                # dump(nlls, save_path, "nlls")
+                # dump(nlls_val, save_path, "nlls-val")
+                # dump(not_nlls, save_path, "not-nlls")
+                # dump(aug_lagrangians, save_path, "aug-lagrangians")
+                # dump(aug_lagrangian_ma[:iter], save_path, "aug-lagrangian-ma")
+                # dump(aug_lagrangians_val, save_path, "aug-lagrangians-val")
+                # dump(grad_norms, save_path, "grad-norms")
+                # dump(grad_norm_ma[:iter], save_path, "grad-norm-ma")
+                # dump(timing, save_path, "timing")
+                # np.save(
+                #     os.path.join(save_path, "DAG"),
+                #     model.adjacency.detach().cpu().numpy(),
+                # )
 
                 # plot
                 if not opt.no_w_adjs_log:
@@ -598,8 +598,8 @@ def train(
                     gumbel_interv = (
                         model.gumbel_interv_w.get_proba().detach().cpu().numpy()
                     )
-                    np.save(os.path.join(save_path, "gumbel_interv"), gumbel_interv)
-                    np.save(os.path.join(save_path, "gt_interv"), gt_interv)
+                    # np.save(os.path.join(save_path, "gumbel_interv"), gumbel_interv)
+                    # np.save(os.path.join(save_path, "gt_interv"), gt_interv)
                     plot_interv_w(gumbel_interv, gt_interv, opt.exp_path)
 
                 plot_learning_curves(
