@@ -18,19 +18,19 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER I
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
-import os
 import argparse
+import os
+
 import cdt
-import torch
 import numpy as np
+import torch
 
-
-from dcdi.models.learnables import LearnableModel_NonLinGaussANM
-from dcdi.models.flows import DeepSigmoidalFlowModel
-from dcdi.train import train, retrain, compute_loss
 from dcdi.data import DataManagerFile
+from dcdi.models.flows import DeepSigmoidalFlowModel
+from dcdi.models.learnables import LearnableModel_NonLinGaussANM
+from dcdi.train import compute_loss, retrain, train
 from dcdi.utils.save import dump
-
+import utils
 
 def _print_metrics(stage, step, metrics, throttle=None):
     for k, v in metrics.items():
@@ -40,12 +40,9 @@ def _print_metrics(stage, step, metrics, throttle=None):
 def file_exists(prefix, suffix):
     return os.path.exists(os.path.join(prefix, suffix))
 
-
-def main(opt, metrics_callback=_print_metrics, plotting_callback=None):
+def main(opt, plotting_callback=None):
     """
     :param opt: a Bunch-like object containing hyperparameter values
-    :param metrics_callback: a function of the form f(step, metrics_dict)
-        used to log metric values during training
     """
 
     # Control as much randomness as possible
@@ -57,11 +54,17 @@ def main(opt, metrics_callback=_print_metrics, plotting_callback=None):
             opt.lr_schedule is None
         ), "--lr-reinit and --lr-schedule are mutually exclusive"
 
+    # create experiment path
+    if not os.path.exists(opt.exp_path):
+        os.makedirs(opt.exp_path)
+
     # Dump hyperparameters to disk
     dump(opt.__dict__, opt.exp_path, "opt")
 
     # Initialize metric logger if needed
-    if metrics_callback is None:
+    if opt.neptune:
+        metrics_callback = utils.log_with_neptune
+    else:
         metrics_callback = _print_metrics
 
     # adjust some default hparams
@@ -80,9 +83,16 @@ def main(opt, metrics_callback=_print_metrics, plotting_callback=None):
         else:
             torch.set_default_tensor_type("torch.DoubleTensor")
 
-    # create experiment path
-    if not os.path.exists(opt.exp_path):
-        os.makedirs(opt.exp_path)
+    # if opt.gpu:
+    #     if opt.float:
+    #         torch.set_default_dtype("torch.cuda.FloatTensor")
+    #     else:
+    #         torch.set_default_dtype("torch.cuda.DoubleTensor")
+    # else:
+    #     if opt.float:
+    #         torch.set_default_dtype("torch.FloatTensor")
+    #     else:
+    #         torch.set_default_dtype("torch.DoubleTensor")
 
     # raise error if not valid setting
     if not (
@@ -271,7 +281,7 @@ def main(opt, metrics_callback=_print_metrics, plotting_callback=None):
 
             # logging final result
             metrics_callback(
-                stage="test_on_new_regimes",
+                stage="test",
                 step=0,
                 metrics={
                     "log_likelihood_train": -loss_train.item(),

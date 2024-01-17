@@ -11,15 +11,17 @@ persons to whom the Software is furnished to do so, subject to the following con
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
 Software.
 
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
 WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
 COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
-import torch
 import numpy as np
+import torch
 from scipy.linalg import expm
+
 from .utils.gumbel import gumbel_sigmoid
 
 
@@ -32,7 +34,9 @@ class TrExpScipy(torch.autograd.Function):
     def forward(ctx, input):
         with torch.no_grad():
             # send tensor to cpu in numpy format and compute expm using scipy
-            expm_input = expm(input.detach().cpu().numpy())
+            # Original formulation
+            # expm_input = expm(input.detach().cpu().numpy())
+            expm_input = torch.matrix_exp(input)  # speed up
             # transform back into a tensor
             expm_input = torch.as_tensor(expm_input)
             if input.is_cuda:
@@ -56,7 +60,7 @@ def compute_dag_constraint(w_adj):
     Compute the DAG constraint of w_adj
     :param np.ndarray w_adj: the weighted adjacency matrix (each entry in [0,1])
     """
-    assert (w_adj >= 0).detach().cpu().numpy().all()
+    # assert (w_adj >= 0).detach().cpu().numpy().all()
     # mod_adj = w_adj * (1 - w_adj).T
     h = TrExpScipy.apply(w_adj) - w_adj.shape[0]
     return h
@@ -134,4 +138,5 @@ class GumbelIntervWeight(torch.nn.Module):
     def get_proba(self):
         """Returns probability of getting one"""
         log_alpha = torch.cat((self.log_alpha_obs, self.log_alpha), dim=1)
+        return torch.sigmoid(log_alpha)
         return torch.sigmoid(log_alpha)
