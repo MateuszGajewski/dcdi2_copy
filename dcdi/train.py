@@ -669,6 +669,12 @@ def train(
                 # Save results
                 results = f"shd: {shd},\nsid: {sid},\nfn: {fn},\nfp: {fp},\nrev: {rev},\nnll_val:{best_nll_val},\nshd_cpdag{shd_cpdag}\n"
                 dump(results, save_path, "results", True)
+                dump(
+                    f"{opt.reg_coeff},{shd},{sid},{fn},{fp},{shd_cpdag}\n",
+                    save_path,
+                    "results",
+                    True,
+                )
                 metrics_callback(
                     stage="final",
                     step=iter,

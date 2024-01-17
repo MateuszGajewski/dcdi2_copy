@@ -200,7 +200,7 @@ class DataManagerFile(object):
             regimes = np.sort(np.unique(self.regimes))
             for i, regime in enumerate(regimes):
                 mask_idx = np.where(self.regimes == regime)[0][0]
-                interv_matrix[:, i] = self.convert_masks(np.array([mask_idx]))
+                interv_matrix[:, i] = (self.convert_masks(np.array([mask_idx]))).cpu()
 
             self.gt_interv = 1 - interv_matrix
         else:
@@ -232,13 +232,14 @@ class DataManagerFile(object):
         :param int batch_size: number of samples to sample
         :return: samples, masks, regimes
         """
+
         sample_idxs = self.random.choice(
             np.arange(int(self.num_samples)), size=(int(batch_size),), replace=False
         )
         samples = self.dataset[torch.as_tensor(sample_idxs).long()]
         if self.intervention:
             masks = self.convert_masks(sample_idxs)
-            regimes = self.regimes[torch.as_tensor(sample_idxs).long()]
+            regimes = self.regimes[torch.as_tensor(sample_idxs).long().cpu()]
         else:
             masks = torch.ones_like(samples)
             regimes = None

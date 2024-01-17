@@ -255,6 +255,7 @@ def get_parser():
 
     # cpdag condition
     parser.add_argument("--cpdag", action="store_true", help="Use CPDAG constraint")
+    return parser
 
     # neptune
     parser.add_argument("--neptune", action="store_true", help="Use Neptune to log metrics")
