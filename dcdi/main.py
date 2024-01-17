@@ -30,7 +30,7 @@ from dcdi.models.flows import DeepSigmoidalFlowModel
 from dcdi.models.learnables import LearnableModel_NonLinGaussANM
 from dcdi.train import compute_loss, retrain, train
 from dcdi.utils.save import dump
-
+import utils
 
 def _print_metrics(stage, step, metrics, throttle=None):
     for k, v in metrics.items():
@@ -40,12 +40,9 @@ def _print_metrics(stage, step, metrics, throttle=None):
 def file_exists(prefix, suffix):
     return os.path.exists(os.path.join(prefix, suffix))
 
-
-def main(opt, metrics_callback=_print_metrics, plotting_callback=None):
+def main(opt, plotting_callback=None):
     """
     :param opt: a Bunch-like object containing hyperparameter values
-    :param metrics_callback: a function of the form f(step, metrics_dict)
-        used to log metric values during training
     """
 
     # Control as much randomness as possible
@@ -65,7 +62,9 @@ def main(opt, metrics_callback=_print_metrics, plotting_callback=None):
     dump(opt.__dict__, opt.exp_path, "opt")
 
     # Initialize metric logger if needed
-    if metrics_callback is None:
+    if opt.neptune:
+        metrics_callback = utils.log_with_neptune
+    else:
         metrics_callback = _print_metrics
 
     # adjust some default hparams
@@ -282,7 +281,7 @@ def main(opt, metrics_callback=_print_metrics, plotting_callback=None):
 
             # logging final result
             metrics_callback(
-                stage="test_on_new_regimes",
+                stage="test",
                 step=0,
                 metrics={
                     "log_likelihood_train": -loss_train.item(),

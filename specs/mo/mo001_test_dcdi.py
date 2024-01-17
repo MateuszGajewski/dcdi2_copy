@@ -7,8 +7,8 @@ name = globals()["script"][:-3]
 
 base_config = {
     "train": True,
-    # "data_path": "./data/data_p3_e3.0_n5000_nn",
-    "data_path": "/net/pr2/projects/plgrid/plggsubgoal/causal/data/data_p3_e3.0_n5000_nn",
+    "data_path": "/data/data_p3_e3.0_n5000_nn",
+    # "data_path": "/net/pr2/projects/plgrid/plggsubgoal/causal/data/data_p3_e3.0_n5000_nn",
     "num_vars": 3,
     "i_dataset": 1,
     "exp_path": "./out",
@@ -16,6 +16,7 @@ base_config = {
     "lr": 0.005,
     "no_w_adjs_log": True,
     "gpu": True,
+    "neptune": True,
 }
 base_config = combine_with_defaults(base_config, defaults=vars(parse_args([])))
 

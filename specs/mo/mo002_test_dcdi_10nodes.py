@@ -16,6 +16,7 @@ base_config = {
     "lr": 0.005,
     "no_w_adjs_log": True,
     "gpu": True,
+    "neptune": True,
 }
 base_config = combine_with_defaults(base_config, defaults=vars(parse_args([])))
 
