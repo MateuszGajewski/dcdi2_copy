@@ -131,7 +131,7 @@ monotonic==1.6
     # via bravado
 mpmath==1.3.0
     # via sympy
-mrunner @ git+https://gitlab.com/awarelab/mrunner.git@a195d266351e0b992a1e8d434f3c7ed4d7606b0b
+mrunner @ git+https://gitlab.com/awarelab/mrunner.git@d7cdb51210e30c4ee371c73f028bd6dba0d4fad2
     # via -r requirements.in
 msgpack==1.0.7
     # via
