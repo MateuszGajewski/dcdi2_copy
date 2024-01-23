@@ -1,5 +1,6 @@
 # Custom
 data/
+apptainer/*.sif
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
