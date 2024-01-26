@@ -21,7 +21,6 @@ import copy
 import os
 import time
 
-import cdt
 import numpy as np
 import torch
 
@@ -35,8 +34,7 @@ from .plot import (
     plot_weighted_adjacency,
 )
 from .prox import monkey_patch_RMSprop
-from .utils.metrics import edge_errors
-from .utils.metrics import shd as shd_metric
+from .utils.metrics import compute_structure_metrics
 from .utils.penalty import compute_penalty
 from .utils.save import dump, load
 
@@ -284,48 +282,51 @@ def train(
         # log metrics
         if iter % 100 == 0:
             print("Iteration:", iter)
-            if opt.num_vars <= 102:
-                print(
-                    "    w_adj({}):\n".format(w_adj_mode), w_adj.detach().cpu().numpy()
-                )
-                print(
-                    "    current_adjacency:\n", model.adjacency.detach().cpu().numpy()
-                )
-                print("    gt_adjacency:\n", gt_adjacency)
 
             with torch.no_grad():
                 to_keep = (model.get_w_adj() > 0.5).type(torch.Tensor)
                 current_adj = model.adjacency * to_keep
                 current_adj = current_adj.cpu().numpy()
+
+                if opt.num_vars <= 102:
+                    print(
+                        "    w_adj({}):\n".format(w_adj_mode),
+                        w_adj.detach().cpu().numpy(),
+                    )
+                    print("    current_adjacency:\n", current_adj)
+                    print("    gt_adjacency:\n", gt_adjacency)
+
                 if opt.cpdag:
                     acyclic = is_acyclic(current_adj * (1 - current_adj.T))
                 else:
                     acyclic = is_acyclic(current_adj)
 
+            structure_metrics = compute_structure_metrics(
+                current_adj, gt_adjacency, opt.cpdag
+            )
+            additional_metrics = {
+                "aug-lagrangian": aug_lagrangian.item(),
+                "aug-lagrangian-moving-avg": aug_lagrangian_ma[iter + 1],
+                "aug-lagrangian-val": aug_lagrangians_val[-1][1],
+                "nll": nlls[-1],
+                "nll-val": nlls_val[-1],
+                "nll-gap": nlls_val[-1] - nlls[-1],
+                "grad-norm-moving-average": grad_norm_ma[iter + 1],
+                "delta_gamma": delta_gamma,
+                "omega_gamma": opt.omega_gamma,
+                "delta_mu": delta_mu,
+                "omega_mu": opt.omega_mu,
+                "constraint_violation": constraint_violation,
+                "acyclicity_violation": h.item(),
+                "mu": mu,
+                "gamma": gamma,
+                "is_acyclic": int(acyclic),
+            }
+
             metrics_callback(
                 stage="train",
                 step=iter,
-                metrics={
-                    "aug-lagrangian": aug_lagrangian.item(),
-                    "aug-lagrangian-moving-avg": aug_lagrangian_ma[iter + 1],
-                    "aug-lagrangian-val": aug_lagrangians_val[-1][1],
-                    "nll": nlls[-1],
-                    "nll-val": nlls_val[-1],
-                    "nll-gap": nlls_val[-1] - nlls[-1],
-                    "grad-norm-moving-average": grad_norm_ma[iter + 1],
-                    "delta_gamma": delta_gamma,
-                    "omega_gamma": opt.omega_gamma,
-                    "delta_mu": delta_mu,
-                    "omega_mu": opt.omega_mu,
-                    "constraint_violation": constraint_violation,
-                    "acyclicity_violation": h.item(),
-                    "mu": mu,
-                    "gamma": gamma,
-                    "initial_lr": opt.lr,
-                    "current_lr": opt.lr,
-                    "is_acyclic": int(acyclic),
-                    "true_edges": gt_adjacency.sum(),
-                },
+                metrics={**structure_metrics, **additional_metrics},
             )
 
         # plot
@@ -655,22 +656,17 @@ def train(
                 )
                 nll_val = nll_val.item()
 
-                # Compute SHD and SID metrics
-                pred_adj_ = model.adjacency.detach().cpu().numpy()
-                train_adj_ = train_data.adjacency.detach().cpu().numpy()
-                sid = float(cdt.metrics.SID(target=train_adj_, pred=pred_adj_))
-                shd = float(shd_metric(pred_adj_, train_adj_))
-                shd_cpdag = float(
-                    cdt.metrics.SHD_CPDAG(target=train_adj_, pred=pred_adj_)
+                current_adj = model.adjacency.detach().cpu().numpy()
+                structure_metrics = compute_structure_metrics(
+                    current_adj, gt_adjacency, opt.cpdag
                 )
-                fn, fp, rev = edge_errors(pred_adj_, train_adj_)
-                del train_adj_, pred_adj_
+                additional_metrics = {"nll_val": best_nll_val}
+                del current_adj
 
                 # Save results
-                results = f"shd: {shd},\nsid: {sid},\nfn: {fn},\nfp: {fp},\nrev: {rev},\nnll_val:{best_nll_val},\nshd_cpdag{shd_cpdag}\n"
-                dump(results, save_path, "results", True)
+                all_metrics_str = str(structure_metrics) + str(additional_metrics)
                 dump(
-                    f"{opt.reg_coeff},{shd},{sid},{fn},{fp},{shd_cpdag}\n",
+                    f"{opt.reg_coeff}, {all_metrics_str}\n",
                     save_path,
                     "results",
                     True,
@@ -678,15 +674,7 @@ def train(
                 metrics_callback(
                     stage="final",
                     step=iter,
-                    metrics={
-                        "shd": shd,
-                        "sid": sid,
-                        "fn": fn,
-                        "fp": fp,
-                        "rev": rev,
-                        "nll_val": best_nll_val,
-                        "shd_cpdag": shd_cpdag,
-                    },
+                    metrics={**structure_metrics, **additional_metrics},
                 )
 
                 return model
