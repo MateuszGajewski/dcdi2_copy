@@ -7,6 +7,7 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 
 import dag_generator as gen
+import torch
 
 
 class dataset_generator:
@@ -470,7 +471,16 @@ if __name__ == "__main__":
         help="if True, make sure that all nodes have been intervened on at least in one setting.",
     )
 
+    parser.add_argument(
+        "--random-seed",
+        type=int,
+        default=42,
+        help="seed for controlling dataset generation",
+    )
+
     arg = parser.parse_args()
+    np.random.seed(arg.random_seed)
+    torch.manual_seed(arg.random_seed)
     generator = dataset_generator(
         arg.mechanism,
         arg.initial_cause,
