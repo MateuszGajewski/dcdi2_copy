@@ -25,6 +25,7 @@ import os
 import numpy as np
 
 from dcdi.main import main
+from dcdi_sampling.main import main as main_sampling
 
 
 def get_parser():
@@ -82,6 +83,19 @@ def get_parser():
         type=int,
         default=64,
         help="number of samples in a minibatch",
+    )
+    parser.add_argument(
+        "--dags-per-sample",
+        type=int,
+        default=16,
+        help="number of dags to sample from one undirectd part",
+    )
+    parser.add_argument(
+        "--sampling-patience",
+        type=int,
+        default=1000,
+        help="number of trials in dag sampling before propability of sampling"
+        " a wrong dag is increased",
     )
     parser.add_argument(
         "--num-train-iter",
@@ -257,7 +271,12 @@ def get_parser():
     parser.add_argument("--cpdag", action="store_true", help="Use CPDAG constraint")
 
     # neptune
-    parser.add_argument("--neptune", action="store_true", help="Use Neptune to log metrics")
+    parser.add_argument(
+        "--neptune", action="store_true", help="Use Neptune to log metrics"
+    )
+    parser.add_argument(
+        "--sampling", action="store_true", help="Use Neptune to log metrics"
+    )
     return parser
 
 
@@ -267,4 +286,8 @@ def parse_args(args=None):
 
 
 if __name__ == "__main__":
-    main(parse_args())
+    args = parse_args()
+    if args.sampling:
+        main_sampling(args)
+    else:
+        main(args)

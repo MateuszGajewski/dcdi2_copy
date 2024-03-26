@@ -5,6 +5,7 @@ from argparse import Namespace
 import mrunner
 from mrunner.helpers.client_helper import get_configuration
 
+from dcdi_sampling.main import main as main_sampling
 from dcdi.main import main
 
 mrunner.settings.NEPTUNE_USE_NEW_API = True
@@ -15,5 +16,9 @@ if __name__ == "__main__":
     )
     params.pop("experiment_id")
     namespace = Namespace(**params)
+    if namespace.sampling:
+        main_sampling(namespace)
+    else:
+        main(namespace)
     # namespace.graph_files = prepare_graph_files(namespace.graph_files)
-    main(namespace)
+    #main(namespace)
