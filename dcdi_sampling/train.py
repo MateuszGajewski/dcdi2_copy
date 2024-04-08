@@ -17,6 +17,7 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER I
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
+
 import copy
 import os
 import time
@@ -208,6 +209,7 @@ def train(
         # constraint_violation = (compute_dag_constraint(w_adj) / constraint_normalization).item()
         # compute regularizer
         reg = opt.reg_coeff * compute_penalty([w_adj], p=1)
+        reg -= opt.unidir_coeff * compute_penalty([w_adj * w_adj.T], p=1)
         reg /= w_adj.shape[0] ** 2
 
         if opt.coeff_interv_sparsity > 0 and opt.intervention_knowledge == "unknown":
@@ -226,10 +228,7 @@ def train(
         # optimization step on augmented lagrangian
         optimizer.zero_grad()
         aug_lagrangian.backward()
-        _, lr = (
-            optimizer.step() if opt.optimizer == "rmsprop" else optimizer.step(),
-            opt.lr,
-        )
+        optimizer.step()
 
         # logging
         if not opt.no_w_adjs_log:

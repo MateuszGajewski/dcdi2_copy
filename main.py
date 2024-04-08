@@ -269,13 +269,20 @@ def get_parser():
 
     # cpdag condition
     parser.add_argument("--cpdag", action="store_true", help="Use CPDAG constraint")
-
+    parser.add_argument(
+        "--unidir-coeff",
+        type=float,
+        default=0.0,
+        help="Coeff motivationg covergence to unidrected edges",
+    )
     # neptune
     parser.add_argument(
         "--neptune", action="store_true", help="Use Neptune to log metrics"
     )
     parser.add_argument(
-        "--sampling", action="store_true", help="Use Neptune to log metrics"
+        "--sampling",
+        action="store_true",
+        help="Use version with sampling from cpdag class",
     )
     return parser
 
