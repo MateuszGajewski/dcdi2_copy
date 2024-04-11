@@ -43,6 +43,8 @@ class BaseModel(nn.Module):
         num_regimes=1,
         dags_per_sample=10,
         sampling_patience=1000,
+        weights_mode="no_weights",
+        epsilon=1.0,
     ):
         """
         :param int num_vars: number of variables in the system
@@ -67,7 +69,7 @@ class BaseModel(nn.Module):
         self.intervention_knowledge = intervention_knowledge
         self.num_regimes = num_regimes
         self.dags_per_sample = dags_per_sample
-        self.dag_sampler = DagSampler(sampling_patience)
+        self.dag_sampler = DagSampler(sampling_patience, weights_mode, epsilon)
         self.dag_size = deque(maxlen=100)
         self.udg_size = deque(maxlen=100)
         self.avg_correct_sample = deque(maxlen=100)

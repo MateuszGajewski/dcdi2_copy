@@ -17,7 +17,6 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER I
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
-
 import copy
 import os
 import time
@@ -39,7 +38,7 @@ from .utils.metrics import (
     compute_averaged_metrics_on_sampled,
     compute_structure_metrics,
     edge_errors,
-    edge_errors_skeleton
+    edge_errors_skeleton,
 )
 from .utils.penalty import compute_penalty
 from .utils.save import dump, load
@@ -106,6 +105,7 @@ def train(
     first_stop = 0
     second_stop = 0
     thresholded = False
+    new_reg = opt.reg_coeff
 
     patience = opt.train_patience
     patience_thresh = opt.train_patience_post
@@ -194,21 +194,21 @@ def train(
         # w_adj = m[0]  # model.get_w_adj()
         if opt.cpdag:
             w_adj = w_adj * (1 - w_adj.T)
-            # print("wwww", w_adj)
         h = compute_dag_constraint(w_adj) / constraint_normalization
-        """
-        for i in range(1, m.shape[0]):
-            w_adj = m[i]
-            w_adj = w_adj * (1 - w_adj.T)
-            h += compute_dag_constraint(w_adj) / constraint_normalization
-        h /= m.shape[0]
-        """
+        if iter % 100 == 0 and opt.dynamic_reg:
+            # new_reg = opt.reg_coeff * (
+            #    1 - (sum(model.avg_correct_sample) / len(model.avg_correct_sample))
+            # )
+            avg_nll = np.mean(nlls[-100:-1])
+            if not np.isnan(avg_nll):
+                new_reg -= 0.1 * (new_reg - (avg_nll / opt.reg_ratio))
+
         constraint_violation = h.item()
 
         w_adj = model.get_w_adj()
         # constraint_violation = (compute_dag_constraint(w_adj) / constraint_normalization).item()
         # compute regularizer
-        reg = opt.reg_coeff * compute_penalty([w_adj], p=1)
+        reg = new_reg * compute_penalty([w_adj], p=1)
         reg -= opt.unidir_coeff * compute_penalty([w_adj * w_adj.T], p=1)
         reg /= w_adj.shape[0] ** 2
 
@@ -337,8 +337,10 @@ def train(
                 "fn_directed_part": fp_dag,
                 "fp_skeleton": fp_skeleton,
                 "fn_skeleton": fn_skeleton,
+                "reg_ratio": np.mean(nlls[-100:-1]) / new_reg,
             }
 
+            # new_reg = opt.reg_coeff  *(sum(model.avg_correct_sample)/len(model.avg_correct_sample))
             metrics_callback(
                 stage="train",
                 step=iter,
@@ -702,7 +704,7 @@ def train(
                 )
 
                 del current_adj
-                
+
                 if averaged_sampled != -1:
                     metrics_callback(
                         stage="final_sampled",

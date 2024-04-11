@@ -22,6 +22,9 @@ class FlowModel(BaseModel):
         num_regimes=1,
         dags_per_sample=10,
         sampling_patience=1000,
+        weights_mode="no_weights",
+        epsilon=1.0,
+        normalize_nll=False,
     ):
         super().__init__(
             num_vars,
@@ -35,8 +38,11 @@ class FlowModel(BaseModel):
             num_regimes=num_regimes,
             dags_per_sample=dags_per_sample,
             sampling_patience=sampling_patience,
+            weights_mode=weights_mode,
+            epsilon=epsilon,
         )
         self.reset_params()
+        self.normalize_nll = normalize_nll
 
     def compute_log_likelihood(
         self, x, weights, biases, extra_params, detach=False, mask=None, regime=None
@@ -52,13 +58,17 @@ class FlowModel(BaseModel):
         :param regime: np.ndarray, shape=(batch_size,)
         :return: (batch_size, num_vars) log-likelihoods
         """
+        n = x.shape[0]
         density_params, weights, x = self.forward_given_params(
             x, weights, biases, mask, regime
         )
         a = self._log_likelihood(x, density_params)
         weights = weights.unsqueeze_(-1)
         # weights = weights.repeat(a.shape[1], 1)
-        # weights = weights/torch.sum(weights)
+        if self.normalize_nll:
+            weights = weights / torch.sum(weights)
+            weights = weights * n
+
         a = weights * a
 
         return a
@@ -84,6 +94,9 @@ class DeepSigmoidalFlowModel(FlowModel):
         num_regimes=1,
         dags_per_sample=10,
         sampling_patience=1000,
+        weights_mode="no_weights",
+        epsilon=1.0,
+        normalize_nll=False,
     ):
         """
         Deep Sigmoidal Flow model
@@ -117,6 +130,9 @@ class DeepSigmoidalFlowModel(FlowModel):
             num_regimes=num_regimes,
             dags_per_sample=dags_per_sample,
             sampling_patience=sampling_patience,
+            weights_mode=weights_mode,
+            epsilon=epsilon,
+            normalize_nll=normalize_nll,
         )
         self.cond_n_layers = cond_n_layers
         self.cond_hid_dim = cond_hid_dim
@@ -188,8 +204,7 @@ class DeepSigmoidalFlowModel(FlowModel):
             params = density_params[
                 :,
                 :,
-                i
-                * self.flow_n_params_per_layer : (i + 1)
+                i * self.flow_n_params_per_layer : (i + 1)
                 * self.flow_n_params_per_layer,
             ]
             h, logdet = self.flow(h, logdet, params)

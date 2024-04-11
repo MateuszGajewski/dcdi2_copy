@@ -1,4 +1,5 @@
 import torch
+import dcdi_sampling.utils.get_weights as weights
 
 # Old way of calculating it - the gradient behaves badly
 """
@@ -16,10 +17,22 @@ def count_cycles(g):
 
 
 class DagSampler(torch.nn.Module):
-    def __init__(self, patience) -> None:
+    def __init__(self, patience, weights_mode="no_weights", epsilon=1.0) -> None:
         super(DagSampler, self).__init__()
         self.uniform = torch.distributions.uniform.Uniform(0, 1)
         self.patience = patience
+        self.epsilon = epsilon
+        if weights_mode == "no_weights":
+            self.weight_function = weights.get_one_weights
+        elif weights_mode == "soft_weights":
+            self.weight_function = weights.get_soft_weights
+        elif weights_mode == "hard_weights":
+            self.weight_function = weights.get_hard_weights
+        else:
+            raise NotImplementedError
+
+    def set_epsilon(self, new_epsilon):
+        self.epsilon = new_epsilon
 
     def forward(self, cpdag: torch.Tensor, samples_number: int, drawhard=False):
         """
@@ -46,6 +59,7 @@ class DagSampler(torch.nn.Module):
         - dag_size
             Size of the DAG part of a graph.
         - udg_size
+
             Size of the undirected part of a graph.
         """
         dag = cpdag * (1 - cpdag.T)
@@ -111,25 +125,25 @@ class DagSampler(torch.nn.Module):
                 sampled_immoralities = self.count_immoralities(g + dag)
 
             iterations = 0
-            # Weights seemed like a good idea, but it turns out that they are rather not
-            # It is already implemented so i leave them here if we decide we want to use it
-            w = torch.exp(
-                -3 * (sampled_immoralities - dag_immoralities)
-                - 3 * (sampled_cycles - dag_cycles)
+            w = self.weight_function(
+                sampled_immoralities,
+                dag_immoralities,
+                sampled_cycles,
+                dag_immoralities,
+                self.epsilon,
             )
-            # w = 1 / torch.exp(
-            #   1  * (sampled_cycles - dag_cycles)
-            #    + 1 * (sampled_immoralities - dag_immoralities)
-            # )
-            # w  = torch.tensor(0.1)
+            weights.append(w)
             correct.append(
                 sampled_cycles == dag_cycles
                 and sampled_immoralities == dag_immoralities
             )
             results.append(g + dag)
-            weights.append(w)
         weights = torch.stack(weights)
-        weights = weights / torch.sum(weights)
+        normalizing_constant = (1 / (1.0 + torch.sum(weights))) * (
+            (sample_number + 1) / sample_number
+        )
+
+        weights = weights * normalizing_constant
 
         return results, weights, sum(correct) / len(correct)
 

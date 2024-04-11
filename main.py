@@ -198,7 +198,28 @@ def get_parser():
         default=0.1,
         help="regularization coefficient (lambda)",
     )
-
+    parser.add_argument(
+        "--reg-ratio",
+        type=float,
+        default=4.0,
+        help="NLL/reg-coeff ratio, used only when dynamic-reg is set to True",
+    )
+    parser.add_argument(
+        "--epsilon",
+        type=float,
+        default=1.0,
+        help="Weight of improper graph, used in DagSampler, only with hard-weights",
+    )
+    parser.add_argument(
+        "--dynamic-reg",
+        action="store_true",
+        help="When set to True, reg coeff is dynamically set according to reg-ratio",
+    )
+    parser.add_argument(
+        "--normalize-nll",
+        action="store_true",
+        help="When set to True, nll is normallized in such manner, that all weights sum up to batch size",
+    )
     # Augmented Lagrangian options
     parser.add_argument(
         "--omega-gamma",
@@ -234,6 +255,12 @@ def get_parser():
     # misc
     parser.add_argument(
         "--patience", type=int, default=10, help="Early stopping patience in --retrain."
+    )
+    parser.add_argument(
+        "--weights-mode",
+        type=str,
+        default="no_weights",
+        help="How weights in DagSampler are handled, possible options are: no_weights. soft_weights, hard_weights",
     )
     parser.add_argument(
         "--train-patience",
