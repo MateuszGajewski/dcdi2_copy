@@ -181,6 +181,9 @@ def main(opt, plotting_callback=None):
             num_regimes=train_data.num_regimes,
             dags_per_sample=opt.dags_per_sample,
             sampling_patience=opt.sampling_patience,
+            weights_mode=opt.weights_mode,
+            epsilon=opt.epsilon,
+            normalize_nll=opt.normalize_nll,
         )
     else:
         raise ValueError("opt.model has to be in {DCDI-G, DCDI-DSF}")
