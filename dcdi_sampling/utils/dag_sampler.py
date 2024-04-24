@@ -254,6 +254,8 @@ class DagSampler(torch.nn.Module):
         udg = cpdag * cpdag.T
 
         udg_size = int(torch.sum(udg) / 2)
+        if udg_size == 0:
+            return [torch.tensor(cpdag)] 
 
         dag_cycles = self.count_cycles(dag)
         dag_immoralities = self.count_immoralities(dag)
@@ -282,6 +284,43 @@ class DagSampler(torch.nn.Module):
             new_cycles = self.count_cycles(picked_matrix)
             new_immoralities = self.count_immoralities(picked_matrix)
             if (new_cycles == dag_cycles) and (new_immoralities == dag_immoralities):
+                proper_dags.append(picked_matrix)
+        return proper_dags
+
+    
+    def generate_all_acyclic_dags(self, cpdag):
+        dag = cpdag * (1 - cpdag.T)
+        udg = cpdag * cpdag.T
+
+        udg_size = int(torch.sum(udg) / 2)
+        if udg_size == 0:
+            return [] 
+
+        dag_cycles = self.count_cycles(dag)
+
+        proper_dags = []
+        triangular = torch.tril(cpdag)
+        edges = (triangular == 1).nonzero(as_tuple=True)
+        edges_t = [edges[1], edges[0]]
+
+        for number in range(0, 2 ** (udg_size)):
+            picked_edges = [[], []]
+            picked_matrix = torch.zeros_like(cpdag)
+            binary_number = str(bin(number))[2:]
+            binary_number = binary_number.zfill(udg_size)
+            mask = [int(i) for i in binary_number]
+            for i, n in enumerate(mask):
+                if n:
+                    picked_edges[0].append(edges[0][i])
+                    picked_edges[1].append(edges[1][i])
+                else:
+                    picked_edges[0].append(edges_t[0][i])
+                    picked_edges[1].append(edges_t[1][i])
+            picked_matrix[picked_edges] = 1
+            picked_matrix += dag
+
+            new_cycles = self.count_cycles(picked_matrix)
+            if (new_cycles == dag_cycles):
                 proper_dags.append(picked_matrix)
         return proper_dags
 

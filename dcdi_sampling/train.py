@@ -20,6 +20,7 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 import copy
 import os
 import time
+from cdt import metrics
 
 import numpy as np
 import torch
@@ -42,6 +43,8 @@ from .utils.metrics import (
 )
 from .utils.penalty import compute_penalty
 from .utils.save import dump, load
+from .utils.dag_sampler import DagSampler
+from neptune.types import File
 
 np.set_printoptions(linewidth=200)
 EPSILON = 1e-8
@@ -703,16 +706,33 @@ def train(
                     current_adj, gt_adjacency, opt.cpdag
                 )
 
+                sample_dags(current_adj, metrics_callback)
                 del current_adj
 
                 if averaged_sampled != -1:
                     metrics_callback(
                         stage="final_sampled",
                         step=iter,
-                        metrics={**averaged_sampled, **{}},
+                        metrics={**averaged_sampled},
                     )
 
                 return model
+
+
+def sample_dags(current_adj, metrics_callback):
+    ds = DagSampler(0)
+    proper_dags = ds.generate_all_proper_dags(torch.tensor(current_adj))
+    acyclic_dags = ds.generate_all_acyclic_dags(torch.tensor(current_adj))
+    if len(proper_dags) != 0 or len(acyclic_dags) != 0:
+        if len(proper_dags) == 0:
+            adjs = torch.stack(acyclic_dags)
+        else:
+            adjs = torch.stack(proper_dags)
+        sampled = {}
+        sampled["adjs"] = File.as_image(adjs.reshape(adjs.shape[0], -1))
+        adjs = adjs.numpy()
+        np.save("./out/adjs.npy", adjs)
+        metrics_callback(stage="post_final", step=0, metrics={**sampled})
 
 
 def retrain(
