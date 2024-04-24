@@ -4,6 +4,7 @@ from argparse import Namespace
 
 import mrunner
 from mrunner.helpers.client_helper import get_configuration
+from mrunner.helpers import client_helper
 
 from dcdi_sampling.main import main as main_sampling
 from dcdi.main import main
@@ -16,9 +17,14 @@ if __name__ == "__main__":
     )
     params.pop("experiment_id")
     namespace = Namespace(**params)
+    try:
+        client_helper.experiment_["neptune_path"] = os.environ["NEPTUNEPWD"]
+    except KeyError:
+        pass
+
     if namespace.sampling:
         main_sampling(namespace)
     else:
         main(namespace)
     # namespace.graph_files = prepare_graph_files(namespace.graph_files)
-    #main(namespace)
+    # main(namespace)
